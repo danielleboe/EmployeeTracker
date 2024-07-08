@@ -1,0 +1,20 @@
+{
+  "name": "employeetracker",
+  "version": "1.0.0",
+  "description": "Employee tracker to o view and manage the departments, roles, and employees in my company",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "danielleboenisch",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "inquirer": "^8.2.6",
+    "pg": "^8.12.0",
+    "sequelize": "^6.33.0"
+  }
+}
