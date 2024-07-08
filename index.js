@@ -14,8 +14,7 @@ const client = new Client({
 client.connect();
 
 const mainMenu = () => {
-  inquirer
-    .prompt([
+  inquirer.prompt({
       // WHEN I start the application
       // THEN I am presented with the following options:
       // view all departments,
@@ -25,7 +24,7 @@ const mainMenu = () => {
       // add a role,
       // add an employee,
       // and update an employee role
-      {
+      
         type: "list",
         name: "action",
         message: "What would you like to do?",
@@ -35,12 +34,11 @@ const mainMenu = () => {
           "View All Employees",
           "Add a Department",
           "Add a Role",
-          "Add An Employee",
+          "Add an Employee",
           "Update Employee Role",
           "Exit",
-        ],
-      },
-    ])
+        ]
+      })
     .then((answer) => {
       switch (answer.action) {
         case "View All Departments":
@@ -102,7 +100,7 @@ const viewRoles = () => {
 //why are  view roles and view employees formatted differently?
 
 const viewEmployees = () => {
-  client.query = `
+  const query = `
     SELECT e.id, e.first_name, e.last_name, r.title, d.name as department, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager 
     FROM employee e 
     JOIN role r on r.id = e.role_id 
@@ -120,24 +118,20 @@ const viewEmployees = () => {
 // THEN I am prompted to enter the name of the department and that department is added to the database
 
 const addDepartment = () => {
-  inquirer
-    .prompt({
+  inquirer.prompt({
       type: "input",
-      name: "dept",
-      message: "Add department name",
-    })
-    .then((answer) => {
+      name: "name",
+      message: "Enter department name",
+    }).then(answer => {
       client.query(
-        "INSERT INTO department (dept) VALUES ($1)",
-        [answer.dept],
-        (err, res) => {
+        'INSERT INTO department (name) VALUES ($1)',
+        [answer.name], (err, res) => {
           if (err) throw err;
           console.log("Department added!");
           mainMenu();
-        }
-      );
-    });
-};
+        });
+      });
+  };
 
 // WHEN I choose to add a role
 // THEN I am prompted to enter the
