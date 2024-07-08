@@ -1,3 +1,9 @@
+-- DROP DATABASE employee_db;
+-- DROP TABLE department;
+-- DROP TABLE role;
+-- DROP TABLE employee;
+
+
 CREATE DATABASE employee_db;
 
 \c employee_db
@@ -19,7 +25,7 @@ CREATE TABLE role (
 CREATE TABLE employee (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR(30) UNIQUE NOT NULL,
-    last_names VARCHAR(30) UNIQUE NOT NULL,
+    last_name VARCHAR(30) UNIQUE NOT NULL,
     role_id INTEGER NOT NULL,
     manager_id INTEGER,
     FOREIGN KEY (role_id) REFERENCES role (id),

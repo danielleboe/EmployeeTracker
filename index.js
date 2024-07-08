@@ -43,25 +43,25 @@ const mainMenu = () => {
     ])
     .then((answer) => {
       switch (answer.action) {
-        case "View all departments":
+        case "View All Departments":
           viewDepartments();
           break;
-        case "View all roles":
+        case "View All Roles":
           viewRoles();
           break;
-        case "View all employees":
+        case "View All Employees":
           viewEmployees();
           break;
-        case "Add a department":
+        case "Add a Department":
           addDepartment();
           break;
-        case "Add a role":
+        case "Add a Role":
           addRole();
           break;
-        case "Add an employee":
+        case "Add an Employee":
           addEmployee();
           break;
-        case "Update an employee role":
+        case "Update Employee Role":
           updateEmployeeRole();
           break;
         case "Exit":
@@ -87,7 +87,7 @@ const viewDepartments = () => {
 
 const viewRoles = () => {
   client.query(
-    "SELECT title, id as role_id, d.name as department, salary FROM role r JOIN department d on r.department_id = d.id",
+    "SELECT r.title, r.id, d.name as department, r.salary FROM role r JOIN department d on r.department_id = d.id",
     (err, res) => {
       if (err) throw err;
       console.table(res.rows);
@@ -102,11 +102,12 @@ const viewRoles = () => {
 //why are  view roles and view employees formatted differently?
 
 const viewEmployees = () => {
-  client.query = `SELECT e.id as employee_id, e.first_name, e.last_name, r.title, d.name as department, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager 
-            FROM employee e 
-            JOIN role r on r.id = e.role_id 
-            JOIN department d on d.id = r.department_id 
-            JOIN employee m on m.manager_id = e.id
+  client.query = `
+    SELECT e.id, e.first_name, e.last_name, r.title, d.name as department, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager 
+    FROM employee e 
+    JOIN role r on r.id = e.role_id 
+    JOIN department d on d.id = r.department_id 
+    JOIN employee m on m.id = e.manager_id
             `;
   client.query(query, (err, res) => {
     if (err) throw err;
@@ -115,40 +116,16 @@ const viewEmployees = () => {
   });
 };
 
-// CREATE TABLE department (
-//     id SERIAL PRIMARY KEY,
-//     name VARCHAR(30) UNIQUE NOT NULL
-// );
-
-// CREATE TABLE role (
-//     id SERIAL PRIMARY KEY,
-//     title VARCHAR(30) UNIQUE NOT NULL,
-//     salary DECIMAL NOT NULL,
-//     department_id INTEGER NOT NULL,
-//     FOREIGN KEY (department_id) REFERENCES department (id)
-// );
-
-// CREATE TABLE employee (
-//     id SERIAL PRIMARY KEY,
-//     first_name VARCHAR(30) UNIQUE NOT NULL,
-//     last_names VARCHAR(30) UNIQUE NOT NULL,
-//     role_id INTEGER NOT NULL,
-//     manager_id INTEGER,
-//     FOREIGN KEY (role_id) REFERENCES role (id),
-//     FOREIGN KEY (manager_id) REFERENCES employee (id)
-// );
-
 // WHEN I choose to add a department
 // THEN I am prompted to enter the name of the department and that department is added to the database
 
 const addDepartment = () => {
   inquirer
-    .prompt(
-      {
-        type: "input",
-        name: "dept",
-        message: "Add department name",
-      })
+    .prompt({
+      type: "input",
+      name: "dept",
+      message: "Add department name",
+    })
     .then((answer) => {
       client.query(
         "INSERT INTO department (dept) VALUES ($1)",
@@ -163,143 +140,158 @@ const addDepartment = () => {
 };
 
 // WHEN I choose to add a role
-// THEN I am prompted to enter the 
-// name, 
-// salary, and 
-// department for the role and 
+// THEN I am prompted to enter the
+// name,
+// salary, and
+// department for the role and
 // that role is added to the database
 
 const addRole = () => {
-  client.query('SELECT * FROM department', (err, res) => {
-      if (err) throw err;
-      const departments = res.rows.map(department => ({
-          name: department.name,
-          value: department.id
-      }));
-      
-      inquirer.prompt([
-          {
-              name: 'title',
-              type: 'input',
-              message: 'Enter the name of the role:'
-          },
-          {
-              name: 'salary',
-              type: 'input',
-              message: 'Enter the salary for the role:'
-          },
-          {
-              name: 'department_id',
-              type: 'list',
-              message: 'Select the department for the role:',
-              choices: departments
+  client.query("SELECT * FROM department", (err, res) => {
+    if (err) throw err;
+    const departments = res.rows.map((department) => ({
+      name: department.name,
+      value: department.id,
+    }));
+
+    inquirer
+      .prompt([
+        {
+          name: "title",
+          type: "input",
+          message: "Enter the name of the role:",
+        },
+        {
+          name: "salary",
+          type: "input",
+          message: "Enter the salary for the role:",
+        },
+        {
+          name: "department_id",
+          type: "list",
+          message: "Select the department for the role:",
+          choices: departments,
+        },
+      ])
+      .then((answers) => {
+        const { title, salary, department_id } = answers;
+        client.query(
+          "INSERT INTO role (title, salary, department_id) VALUES ($1, $2, $3)",
+          [title, salary, department_id],
+          (err, res) => {
+            if (err) throw err;
+            console.log("Role added!");
+            mainMenu();
           }
-      ]).then(answers => {
-          const { title, salary, department_id } = answers;
-          client.query('INSERT INTO role (title, salary, department_id) VALUES ($1, $2, $3)', [title, salary, department_id], (err, res) => {
-              if (err) throw err;
-              console.log('Role added!');
-              mainMenu();
-          });
+        );
       });
   });
 };
-
-
 
 // WHEN I choose to add an employee
 // THEN I am prompted to enter the employee’s first name, last name, role, and manager, and that employee is added to the database
 const addEmployee = () => {
-  client.query('SELECT * FROM role', (err, res) => {
+  client.query("SELECT * FROM role", (err, res) => {
+    if (err) throw err;
+    const roles = res.rows.map((role) => ({
+      name: role.title,
+      value: role.id,
+    }));
+
+    client.query("SELECT * FROM employee", (err, res) => {
       if (err) throw err;
-      const roles = res.rows.map(role => ({
-          name: role.title,
-          value: role.id
+      const managers = res.rows.map((manager) => ({
+        name: `${manager.first_name} ${manager.last_name}`,
+        value: manager.id,
       }));
+      managers.push({ name: "None", value: null });
 
-      client.query('SELECT * FROM employee', (err, res) => {
-          if (err) throw err;
-          const managers = res.rows.map(manager => ({
-              name: `${manager.first_name} ${manager.last_name}`,
-              value: manager.id
-          }));
-          managers.push({ name: 'None', value: null });
-
-          inquirer.prompt([
-              {
-                  name: 'first_name',
-                  type: 'input',
-                  message: 'Enter the employee\'s first name:'
-              },
-              {
-                  name: 'last_name',
-                  type: 'input',
-                  message: 'Enter the employee\'s last name:'
-              },
-              {
-                  name: 'role_id',
-                  type: 'list',
-                  message: 'Select the employee\'s role:',
-                  choices: roles
-              },
-              {
-                  name: 'manager_id',
-                  type: 'list',
-                  message: 'Select the employee\'s manager:',
-                  choices: managers
-              }
-          ]).then(answers => {
-              const { first_name, last_name, role_id, manager_id } = answers;
-              client.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)', [first_name, last_name, role_id, manager_id], (err, res) => {
-                  if (err) throw err;
-                  console.log('Employee added!');
-                  mainMenu();
-              });
-          });
-      });
+      inquirer
+        .prompt([
+          {
+            name: "first_name",
+            type: "input",
+            message: "Enter the employee's first name:",
+          },
+          {
+            name: "last_name",
+            type: "input",
+            message: "Enter the employee's last name:",
+          },
+          {
+            name: "role_id",
+            type: "list",
+            message: "Select the employee's role:",
+            choices: roles,
+          },
+          {
+            name: "manager_id",
+            type: "list",
+            message: "Select the employee's manager:",
+            choices: managers,
+          },
+        ])
+        .then((answers) => {
+          const { first_name, last_name, role_id, manager_id } = answers;
+          client.query(
+            "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)",
+            [first_name, last_name, role_id, manager_id],
+            (err, res) => {
+              if (err) throw err;
+              console.log("Employee added!");
+              mainMenu();
+            }
+          );
+        });
+    });
   });
 };
-
 
 // WHEN I choose to update an employee role
 // THEN I am prompted to select an employee to update and their new role and this information is updated in the database
 const updateEmployeeRole = () => {
-  client.query('SELECT * FROM employee', (err, res) => {
+  client.query("SELECT * FROM employee", (err, res) => {
+    if (err) throw err;
+    const employees = res.rows.map((employee) => ({
+      name: `${employee.first_name} ${employee.last_name}`,
+      value: employee.id,
+    }));
+
+    client.query("SELECT * FROM role", (err, res) => {
       if (err) throw err;
-      const employees = res.rows.map(employee => ({
-          name: `${employee.first_name} ${employee.last_name}`,
-          value: employee.id
+      const roles = res.rows.map((role) => ({
+        name: role.title,
+        value: role.id,
       }));
 
-      client.query('SELECT * FROM role', (err, res) => {
-          if (err) throw err;
-          const roles = res.rows.map(role => ({
-              name: role.title,
-              value: role.id
-          }));
-
-          inquirer.prompt([
-              {
-                  name: 'employee_id',
-                  type: 'list',
-                  message: 'Select the employee to update:',
-                  choices: employees
-              },
-              {
-                  name: 'role_id',
-                  type: 'list',
-                  message: 'Select the new role:',
-                  choices: roles
-              }
-          ]).then(answers => {
-              const { employee_id, role_id } = answers;
-              client.query('UPDATE employee SET role_id = $1 WHERE id = $2', [role_id, employee_id], (err, res) => {
-                  if (err) throw err;
-                  console.log('Employee role updated!');
-                  mainMenu();
-              });
-          });
-      });
+      inquirer
+        .prompt([
+          {
+            name: "employee_id",
+            type: "list",
+            message: "Select the employee to update:",
+            choices: employees,
+          },
+          {
+            name: "role_id",
+            type: "list",
+            message: "Select the new role:",
+            choices: roles,
+          },
+        ])
+        .then((answers) => {
+          const { employee_id, role_id } = answers;
+          client.query(
+            "UPDATE employee SET role_id = $1 WHERE id = $2",
+            [role_id, employee_id],
+            (err, res) => {
+              if (err) throw err;
+              console.log("Employee role updated!");
+              mainMenu();
+            }
+          );
+        });
+    });
   });
 };
 
